@@ -102,3 +102,44 @@ openapi-lint:
 		node:22-alpine \
 		npx --yes @redocly/cli@$(OPENAPI_CLI_VERSION) lint api/openapi.yaml
 
+HELM_RELEASE ?= trade-journal
+HELM_NAMESPACE ?= trade-journal
+HELM_CHART ?= deploy/helm/trade-journal
+HELM_VALUES ?= deploy/helm/trade-journal/values-k3s.yaml
+
+.PHONY: helm-lint helm-template helm-install helm-status helm-uninstall
+
+helm-lint:
+	@helm lint $(HELM_CHART) \
+		--values $(HELM_VALUES) \
+		--set-string database.password=validation-only
+
+
+helm-template:
+	@helm template $(HELM_RELEASE) $(HELM_CHART) \
+		--namespace $(HELM_NAMESPACE) \
+		--values $(HELM_VALUES) \
+		--set-string database.password=validation-only
+
+helm-install:
+	@test -n "$(DATABASE_PASSWORD)" || \
+		(echo "DATABASE_PASSWORD is required" && exit 1)
+	helm upgrade --install $(HELM_RELEASE) $(HELM_CHART) \
+		--namespace $(HELM_NAMESPACE) \
+		--create-namespace \
+		--values $(HELM_VALUES) \
+		--set-string database.password="$(DATABASE_PASSWORD)" \
+		--wait \
+		--timeout 10m
+
+
+helm-status:
+	helm status $(HELM_RELEASE) \
+		--namespace $(HELM_NAMESPACE)
+	kubectl get pods,services,ingress,pvc,jobs \
+		--namespace $(HELM_NAMESPACE)
+
+helm-uninstall:
+	helm uninstall $(HELM_RELEASE) \
+		--namespace $(HELM_NAMESPACE)
+

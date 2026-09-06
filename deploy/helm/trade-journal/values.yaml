@@ -1,0 +1,112 @@
+nameOverride: ""
+fullnameOverride: ""
+
+imagePullSecrets: []
+
+
+database:
+
+  image:
+    repository: postgres
+
+    tag: "16-alpine"
+    pullPolicy: IfNotPresent
+
+  username: trade_journal
+  password: ""
+
+  name: trade_journal
+
+  port: 5432
+
+
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 5Gi
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+migration:
+  image:
+    repository: ghcr.io/jmontilla202/trade-journal/migrate
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+
+  args:
+    - -dir
+    - /migrations
+    - up
+
+  backoffLimit: 6
+  ttlSecondsAfterFinished: 600
+
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
+api:
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/jmontilla202/trade-journal/api
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+
+  containerPort: 8080
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+
+web:
+
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/jmontilla202/trade-journal/web
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+
+  containerPort: 8080
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
+ingress:
+  enabled: true
+  className: traefik
+  annotations: {}
+  host: trade-journal.local
+  tls:
+    enabled: false
+    secretName: ""
+

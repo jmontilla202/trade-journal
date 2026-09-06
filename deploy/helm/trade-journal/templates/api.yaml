@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "trade-journal.fullname" . }}-api
+  labels:
+    {{- include "trade-journal.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  type: {{ .Values.api.service.type }}
+  selector:
+    {{- include "trade-journal.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+
+  ports:
+    - name: http
+      port: {{ .Values.api.service.port }}
+      targetPort: http
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "trade-journal.fullname" . }}-api
+  labels:
+    {{- include "trade-journal.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  replicas: {{ .Values.api.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "trade-journal.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        {{- include "trade-journal.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: api
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      initContainers:
+        - name: wait-for-migrations
+          image: "{{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}"
+          imagePullPolicy: {{ .Values.database.image.pullPolicy }}
+          command:
+            - sh
+            - -ec
+            - |
+              until psql "$DATABASE_URL" \
+                --no-align \
+                --tuples-only \
+                --command="SELECT to_regclass('public.accounts')" \
+                | grep -q accounts; do
+                echo "Waiting for database migrations..."
+                sleep 2
+              done
+          envFrom:
+            - secretRef:
+
+                name: {{ include "trade-journal.secretName" . }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+
+              drop:
+                - ALL
+
+      containers:
+        - name: api
+          image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.api.containerPort }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "trade-journal.secretName" . }}
+                  key: DATABASE_URL
+            - name: PORT
+              value: {{ .Values.api.containerPort | quote }}
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health/ready
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+
+      volumes:
+        - name: tmp
+          emptyDir: {}
+
