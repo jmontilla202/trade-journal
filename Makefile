@@ -130,8 +130,8 @@ helm-install:
 		--values $(HELM_VALUES) \
 		--set-string database.password="$(DATABASE_PASSWORD)" \
 		--wait \
+		--wait-for-jobs \
 		--timeout 10m
-
 
 helm-status:
 	helm status $(HELM_RELEASE) \

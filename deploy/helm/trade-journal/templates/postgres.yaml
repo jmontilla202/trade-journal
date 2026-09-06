@@ -10,7 +10,6 @@ spec:
   selector:
     {{- include "trade-journal.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: database
-
   ports:
     - name: postgres
       port: {{ .Values.database.port }}
@@ -22,7 +21,6 @@ kind: StatefulSet
 metadata:
   name: {{ include "trade-journal.fullname" . }}-postgres
   labels:
-
     {{- include "trade-journal.labels" . | nindent 4 }}
     app.kubernetes.io/component: database
 spec:
@@ -56,7 +54,6 @@ spec:
               value: /var/lib/postgresql/data/pgdata
           readinessProbe:
             exec:
-
               command:
                 - sh
                 - -ec
@@ -67,7 +64,6 @@ spec:
             failureThreshold: 12
           livenessProbe:
             exec:
-
               command:
                 - sh
                 - -ec
@@ -84,12 +80,16 @@ spec:
             - name: tmp
               mountPath: /tmp
           securityContext:
-
             allowPrivilegeEscalation: false
             capabilities:
               drop:
                 - ALL
-
+              add:
+                - CHOWN
+                - DAC_OVERRIDE
+                - FOWNER
+                - SETGID
+                - SETUID
       volumes:
         - name: tmp
           emptyDir: {}
@@ -103,13 +103,11 @@ spec:
         name: database
       spec:
         accessModes:
-
           - ReadWriteOnce
         {{- with .Values.database.persistence.storageClass }}
         storageClassName: {{ . | quote }}
         {{- end }}
         resources:
-
           requests:
             storage: {{ .Values.database.persistence.size }}
   {{- end }}

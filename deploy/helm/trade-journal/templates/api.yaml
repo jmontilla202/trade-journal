@@ -40,7 +40,6 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-
       initContainers:
         - name: wait-for-migrations
           image: "{{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}"
@@ -59,15 +58,12 @@ spec:
               done
           envFrom:
             - secretRef:
-
                 name: {{ include "trade-journal.secretName" . }}
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
-
               drop:
                 - ALL
-
       containers:
         - name: api
           image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
@@ -106,13 +102,11 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             capabilities:
-
               drop:
                 - ALL
           volumeMounts:
             - name: tmp
               mountPath: /tmp
-
       volumes:
         - name: tmp
           emptyDir: {}

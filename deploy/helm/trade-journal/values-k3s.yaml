@@ -1,3 +1,6 @@
+imagePullSecrets:
+  - name: ghcr-pull
+
 database:
   persistence:
     enabled: true

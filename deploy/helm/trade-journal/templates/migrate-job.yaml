@@ -19,7 +19,6 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-
       initContainers:
         - name: wait-for-postgres
           image: "{{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}"
@@ -28,15 +27,9 @@ spec:
             - sh
             - -ec
             - |
-              until pg_isready \
-                --host="{{ include "trade-journal.fullname" . }}-postgres" \
-                --port="{{ .Values.database.port }}" \
-
-                --username="$POSTGRES_USER" \
-                --dbname="$POSTGRES_DB"; do
+              until pg_isready --host=trade-journal-postgres --port=5432 --username=trade_journal --dbname=trade_journal; do
                 echo "Waiting for PostgreSQL..."
                 sleep 2
-
               done
           envFrom:
             - secretRef:
@@ -46,22 +39,22 @@ spec:
             capabilities:
               drop:
                 - ALL
-
       containers:
         - name: migrate
           image: "{{ .Values.migration.image.repository }}:{{ .Values.migration.image.tag }}"
           imagePullPolicy: {{ .Values.migration.image.pullPolicy }}
+          command:
+            - /usr/local/bin/goose
           args:
-            {{- toYaml .Values.migration.args | nindent 12 }}
-          envFrom:
-            - secretRef:
-                name: {{ include "trade-journal.secretName" . }}
-          resources:
-            {{- toYaml .Values.migration.resources | nindent 12 }}
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
+            - -dir
+            - /app/migrations
+            - up
+          env:
+            - name: GOOSE_DRIVER
+              value: postgres
+            - name: GOOSE_DBSTRING
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "trade-journal.fullname" . }}-database
+                  key: DATABASE_URL
 

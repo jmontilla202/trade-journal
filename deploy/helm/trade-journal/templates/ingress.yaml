@@ -12,7 +12,6 @@ metadata:
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   rules:
-
     - host: {{ .Values.ingress.host | quote }}
       http:
         paths:
@@ -27,7 +26,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-
                 name: {{ include "trade-journal.fullname" . }}-web
                 port:
                   number: {{ .Values.web.service.port }}
@@ -37,6 +35,5 @@ spec:
         - {{ .Values.ingress.host | quote }}
       secretName: {{ required "ingress.tls.secretName is required when TLS is enabled" .Values.ingress.tls.secretName }}
   {{- end }}
-
 {{- end }}
 
