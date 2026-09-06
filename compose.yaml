@@ -77,6 +77,7 @@ services:
         condition: service_healthy
     ports:
       - "${APP_PORT:-8080}:8080"
+    user: "10001:10001"
     read_only: true
     tmpfs:
       - /config

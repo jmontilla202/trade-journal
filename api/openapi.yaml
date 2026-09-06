@@ -1,0 +1,682 @@
+openapi: 3.1.0
+
+info:
+  title: Trade Journal API
+  version: 0.1.0
+  description: API for capturing and managing the trade lifecycle.
+
+servers:
+  - url: /api/v1
+    description: Current host
+
+tags:
+
+  - name: Health
+  - name: Metadata
+  - name: Trades
+
+paths:
+  /health/live:
+    get:
+      tags: [Health]
+      operationId: getLiveness
+      summary: Check whether the API process is running
+      responses:
+        "200":
+          description: API is live
+          content:
+
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /health/ready:
+    get:
+      tags: [Health]
+      operationId: getReadiness
+
+      summary: Check whether the API and database are ready
+      responses:
+        "200":
+          description: API is ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: API is not ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /accounts:
+    get:
+      tags: [Metadata]
+      operationId: listAccounts
+      summary: List active trading accounts
+      responses:
+        "200":
+          description: Account list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+
+                  $ref: "#/components/schemas/Account"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /instruments:
+
+    get:
+      tags: [Metadata]
+      operationId: listInstruments
+      summary: List active instruments
+      responses:
+        "200":
+          description: Instrument list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Instrument"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /trades:
+    get:
+
+      tags: [Trades]
+      operationId: listTrades
+      summary: List trades
+      parameters:
+        - name: sessionDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: accountId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/TradeStatus"
+      responses:
+        "200":
+          description: Trade list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Trade"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      tags: [Trades]
+      operationId: createTrade
+      summary: Create a draft trade
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTradeRequest"
+      responses:
+        "201":
+          description: Draft trade created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trade"
+        "400":
+
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /trades/{tradeId}:
+    parameters:
+      - $ref: "#/components/parameters/TradeId"
+
+
+    get:
+      tags: [Trades]
+
+      operationId: getTrade
+      summary: Retrieve a trade
+      responses:
+        "200":
+          description: Trade found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trade"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      tags: [Trades]
+      operationId: updateTrade
+      summary: Update an existing trade
+      requestBody:
+
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTradeRequest"
+      responses:
+
+        "200":
+          description: Trade updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trade"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /trades/{tradeId}/open:
+    parameters:
+      - $ref: "#/components/parameters/TradeId"
+
+
+    post:
+
+      tags: [Trades]
+      operationId: openTrade
+      summary: Move a draft trade to the open state
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenTradeRequest"
+      responses:
+
+        "200":
+          description: Trade opened
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trade"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /trades/{tradeId}/close:
+    parameters:
+      - $ref: "#/components/parameters/TradeId"
+
+
+    post:
+      tags: [Trades]
+      operationId: closeTrade
+      summary: Move an open trade to the closed state
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CloseTradeRequest"
+
+      responses:
+        "200":
+          description: Trade closed and financial results calculated
+          content:
+            application/json:
+
+              schema:
+                $ref: "#/components/schemas/Trade"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+
+components:
+  parameters:
+
+    TradeId:
+      name: tradeId
+      in: path
+      required: true
+      description: Internal trade identifier
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+
+    Conflict:
+      description: State, uniqueness, or version conflict
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          examples: [ready]
+
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+    TradeStatus:
+      type: string
+      enum:
+
+        - draft
+        - open
+        - closed
+
+    TradeDirection:
+      type: string
+      enum:
+        - long
+
+        - short
+
+    Account:
+      type: object
+      required:
+        - id
+        - name
+        - accountType
+        - accountSize
+        - active
+      properties:
+        id:
+
+          type: string
+          format: uuid
+        name:
+          type: string
+        propFirm:
+          type:
+
+            - string
+            - "null"
+
+        accountType:
+          type: string
+        accountSize:
+          type: number
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Instrument:
+      type: object
+      required:
+        - symbol
+        - name
+        - tickSize
+        - tickValue
+        - currency
+        - active
+      properties:
+        symbol:
+          type: string
+          examples: [MES]
+        name:
+          type: string
+        exchange:
+          type:
+            - string
+            - "null"
+        tickSize:
+
+          type: number
+          exclusiveMinimum: 0
+        tickValue:
+          type: number
+          exclusiveMinimum: 0
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          examples: [USD]
+        active:
+          type: boolean
+
+    CreateTradeRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - accountId
+        - instrumentSymbol
+        - sessionDate
+        - tradeNumber
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        instrumentSymbol:
+          type: string
+        sessionDate:
+          type: string
+          format: date
+        tradeNumber:
+          type: integer
+          minimum: 1
+        setup:
+          type: string
+        primaryLocation:
+          type: string
+        secondaryLocation:
+          type: string
+        trigger:
+          type: string
+        notes:
+          type: string
+
+
+    UpdateTradeRequest:
+      type: object
+      additionalProperties: false
+      required: [version]
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        accountId:
+          type: string
+          format: uuid
+        instrumentSymbol:
+          type: string
+        sessionDate:
+          type: string
+          format: date
+        tradeNumber:
+          type: integer
+          minimum: 1
+        initialStopReference:
+          type: string
+        plannedTargetReference:
+          type: string
+        setup:
+          type: string
+        primaryLocation:
+          type: string
+        secondaryLocation:
+
+          type: string
+        trigger:
+          type: string
+
+        notes:
+          type: string
+
+    OpenTradeRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - direction
+
+        - contracts
+        - entryTime
+        - entryPrice
+        - initialStopPrice
+        - version
+
+      properties:
+        direction:
+          $ref: "#/components/schemas/TradeDirection"
+        contracts:
+          type: integer
+          minimum: 1
+        entryTime:
+          type: string
+          format: date-time
+        entryPrice:
+          type: number
+        initialStopPrice:
+          type: number
+        plannedTargetPrice:
+          type:
+            - number
+            - "null"
+        initialStopReference:
+          type: string
+        plannedTargetReference:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+
+
+    CloseTradeRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - exitTime
+        - exitPrice
+        - version
+      properties:
+        exitTime:
+
+          type: string
+          format: date-time
+        exitPrice:
+          type: number
+        fees:
+          type: number
+          minimum: 0
+          default: 0
+        notes:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+
+    Trade:
+      type: object
+      required:
+        - id
+        - tradeId
+        - accountId
+        - instrumentSymbol
+        - status
+        - sessionDate
+        - tradeNumber
+        - version
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        tradeId:
+
+          type: string
+        accountId:
+          type: string
+          format: uuid
+        instrumentSymbol:
+          type: string
+        status:
+
+          $ref: "#/components/schemas/TradeStatus"
+        sessionDate:
+          type: string
+          format: date
+        tradeNumber:
+          type: integer
+          minimum: 1
+        direction:
+          oneOf:
+
+            - $ref: "#/components/schemas/TradeDirection"
+            - type: "null"
+        contracts:
+          type:
+            - integer
+            - "null"
+          minimum: 1
+        entryTime:
+          type:
+            - string
+            - "null"
+          format: date-time
+        exitTime:
+          type:
+            - string
+            - "null"
+          format: date-time
+        entryPrice:
+          type:
+            - number
+
+            - "null"
+        exitPrice:
+          type:
+            - number
+            - "null"
+        initialStopPrice:
+          type:
+            - number
+            - "null"
+        initialStopReference:
+          type:
+            - string
+            - "null"
+        plannedTargetPrice:
+          type:
+            - number
+            - "null"
+        plannedTargetReference:
+          type:
+            - string
+            - "null"
+        setup:
+          type:
+            - string
+            - "null"
+        primaryLocation:
+          type:
+            - string
+            - "null"
+        secondaryLocation:
+          type:
+            - string
+            - "null"
+        trigger:
+          type:
+            - string
+            - "null"
+        fees:
+          type:
+            - number
+
+            - "null"
+        grossPnl:
+          type:
+            - number
+            - "null"
+        netPnl:
+          type:
+            - number
+            - "null"
+        plannedRiskPoints:
+          type:
+            - number
+            - "null"
+        plannedRiskUsd:
+          type:
+            - number
+            - "null"
+        realizedR:
+          type:
+            - number
+            - "null"
+        notes:
+
+          type:
+            - string
+            - "null"
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+

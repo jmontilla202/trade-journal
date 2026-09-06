@@ -2,17 +2,13 @@ SHELL := /bin/sh
 
 .PHONY: dev dev-down up down build logs test migrate-up clean
 
+COMPOSE_DEV := docker compose --env-file .env -f compose.dev.yaml
+
+OPENAPI_CLI_VERSION := 1.34.3
+
 dev:
 	docker compose --env-file .env -f compose.dev.yaml up --build
-#dev:
-#	docker compose \
-		--env-file .env \
-		-f compose.dev.yaml \
-		up \
-		--build \
-		postgres \
-		migrate \
-		api
+
 dev-down:
 	docker compose --env-file .env -f compose.dev.yaml down
 
@@ -64,5 +60,45 @@ web-test:
 smoke:
 	./scripts/smoke-test.sh
 
-check: api-test web-test smoke
+#check: api-test web-test smoke
+
+.PHONY: api-format api-fmt-check api-vet api-test web-test web-build smoke check
+
+api-format:
+	$(COMPOSE_DEV) run --rm --no-deps api sh -c 'find . -name "*.go" -type f -exec gofmt -w {} +'
+
+api-fmt-check:
+	@files="$$( $(COMPOSE_DEV) run --rm --no-deps api sh -c 'find . -name "*.go" -type f -exec gofmt -l {} +' )"; \
+	if [ -n "$$files" ]; then \
+		echo "The following Go files need formatting:"; \
+		echo "$$files"; \
+		exit 1; \
+	fi
+
+api-vet:
+	$(COMPOSE_DEV) run --rm --no-deps api go vet ./...
+
+api-test:
+	$(COMPOSE_DEV) run --rm --no-deps api go test ./...
+
+
+web-test:
+	$(COMPOSE_DEV) run --rm --no-deps web npm run test
+
+web-build:
+	$(COMPOSE_DEV) run --rm --no-deps web npm run build
+
+smoke:
+	./scripts/smoke-test.sh
+
+check: openapi-lint api-fmt-check api-vet api-test web-test web-build smoke
+
+.PHONY: openapi-lint
+
+openapi-lint:
+	docker run --rm \
+		--volume "$(CURDIR):/workspace" \
+		--workdir /workspace \
+		node:22-alpine \
+		npx --yes @redocly/cli@$(OPENAPI_CLI_VERSION) lint api/openapi.yaml
 

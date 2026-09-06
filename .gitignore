@@ -18,3 +18,13 @@ tmp/
 
 secrets/
 
+# Test output
+coverage.out
+coverage/
+*.coverprofile
+
+
+# Frontend build
+
+apps/web/dist/
+

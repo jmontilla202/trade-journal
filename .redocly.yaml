@@ -1,0 +1,10 @@
+extends:
+  - minimal
+
+rules:
+
+  operation-operationId: error
+  no-ambiguous-paths: error
+  no-invalid-media-type-examples: error
+  no-unused-components: error
+
