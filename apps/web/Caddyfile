@@ -2,11 +2,11 @@
 	encode zstd gzip
 
 	handle /api/* {
-		reverse_proxy trade-journal-api
+		reverse_proxy trade-journal-api:8080
 	}
 
 	handle /metrics {
-		reverse_proxy trade-journal-api
+		reverse_proxy trade-journal-api:8080
 	}
 
 	handle {
