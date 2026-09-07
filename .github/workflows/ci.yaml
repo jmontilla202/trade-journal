@@ -189,12 +189,14 @@ jobs:
 
       - name: Wait for migration container
         run: |
-          docker compose \
+          migration_id="$(
+            docker compose \
               --env-file .env \
               -f compose.dev.yaml \
               ps \
+              --quiet \
               migrate
-          sleep 30
+          )"
 
           if [ "${exit_code}" != "0" ]; then
             docker logs "${migration_id}"
