@@ -193,7 +193,7 @@ jobs:
               --env-file .env \
               -f compose.dev.yaml \
               ps \
-              --quite \
+              --quiet \
               migrate
           sleep 30
 
