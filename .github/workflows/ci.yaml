@@ -193,11 +193,8 @@ jobs:
               --env-file .env \
               -f compose.dev.yaml \
               ps \
-              --quiet \
               migrate
           sleep 30
-
-          exit_code="$(docker wait "${migration_id}")"
 
           if [ "${exit_code}" != "0" ]; then
             docker logs "${migration_id}"
