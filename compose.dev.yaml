@@ -31,7 +31,6 @@ services:
       postgres:
         condition: service_healthy
     networks:
-
       - development
 
   api:
@@ -41,7 +40,6 @@ services:
     environment:
       APP_ENV: development
       APP_PORT: "8080"
-
       APP_TIMEZONE: ${APP_TIMEZONE:-America/New_York}
       DATABASE_URL: ${DATABASE_URL:-postgres://trade_journal:local-development-password@postgres:5432/trade_journal?sslmode=disable}
     command: ["go", "run", "./cmd/server"]
@@ -69,11 +67,9 @@ services:
       - web_node_modules:/workspace/node_modules
     depends_on:
       - api
-
     ports:
       - "5173:5173"
     networks:
-
       - development
 
 volumes:

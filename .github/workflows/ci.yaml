@@ -178,7 +178,6 @@ jobs:
           POSTGRES_PASSWORD=ci-trade-journal-password
           DATABASE_URL=postgres://trade_journal:ci-trade-journal-password@postgres:5432/trade_journal?sslmode=disable
           API_PORT=8081
-
           WEB_PORT=5173
           VITE_API_PROXY_TARGET=http://api:8080
           EOF
@@ -254,7 +253,6 @@ jobs:
           docker compose \
             --env-file .env \
             -f compose.dev.yaml \
-
             down \
             --volumes \
             --remove-orphans
