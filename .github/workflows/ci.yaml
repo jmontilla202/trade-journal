@@ -223,7 +223,6 @@ jobs:
               -f compose.dev.yaml \
               ps \
               --quiet \
-
               migrate
           )"
 
@@ -243,9 +242,7 @@ jobs:
       - name: Run lifecycle smoke test
         env:
           API_URL: http://localhost:8081
-
           COMPOSE_FILE: compose.dev.yaml
-
           ENV_FILE: .env
         run: ./scripts/smoke-test.sh
 
@@ -258,8 +255,6 @@ jobs:
             ps --all
 
       - name: Show service logs
-
-
         if: failure()
         run: |
           docker compose \
@@ -275,7 +270,6 @@ jobs:
           docker compose \
             --env-file .env \
             -f compose.dev.yaml \
-
             down \
             --volumes \
             --remove-orphans
