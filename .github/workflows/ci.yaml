@@ -197,13 +197,19 @@ jobs:
               --quiet \
               migrate
           )"
+          
+          if [ -z "${migration_id}" ]; then
+            echo "Migration container was not created"
+            exit 1
+          fi
+
+          exit_code="$(docker wait "${migration_id}")"
 
           if [ "${exit_code}" != "0" ]; then
             docker logs "${migration_id}"
             exit "${exit_code}"
           fi
-
-
+        
       - name: Run lifecycle smoke test
         env:
           API_URL: http://localhost:8081
