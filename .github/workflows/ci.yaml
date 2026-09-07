@@ -197,22 +197,11 @@ jobs:
 
       - name: Wait for migration container
         run: |
-          migration_id="$(
-            docker compose \
+          docker compose \
               --env-file .env \
               -f compose.dev.yaml \
               ps \
               migrate
-          )"
-
-#          migration_id="$(
-#            docker compose \
-#              --env-file .env \
-#              -f compose.dev.yaml \
-#              ps \
-#              --quiet \
-#              migrate
-#          )"
 
           if [ -z "${migration_id}" ]; then
             echo "Migration container was not created"
