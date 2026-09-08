@@ -1,0 +1,21 @@
+imagePullSecrets:
+  - name: ghcr-pull
+
+database:
+  persistence:
+    enabled: true
+    storageClass: local-path
+    size: 5Gi
+
+
+api:
+  replicaCount: 1
+
+web:
+  replicaCount: 1
+
+ingress:
+  enabled: true
+  className: traefik
+  host: trade-journal.local
+
